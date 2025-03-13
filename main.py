@@ -67,3 +67,10 @@ desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5
 media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
 desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
 
+media_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().mean()
+desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().std()
+
+min_horas_empleados = df_contactos['tiempo'].min()
+max_horas_empleados = df_contactos['tiempo'].max()
+
+
