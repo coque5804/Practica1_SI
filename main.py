@@ -59,3 +59,11 @@ for ticket in datos["tickets_emitidos"]:
 df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
 df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
 
+# Calcular valores necesarios
+num_muestras = len(df_incidentes)
+media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
+desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
+
+media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
+desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
+
