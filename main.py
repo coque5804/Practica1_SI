@@ -73,4 +73,10 @@ desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum(
 min_horas_empleados = df_contactos['tiempo'].min()
 max_horas_empleados = df_contactos['tiempo'].max()
 
+# Convertir fechas a formato datetime
+df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
+df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
+
+tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
+
 
