@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe de Resultados</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Informe de Resultados</h1>
+    <ul>
+        <li>Número de muestras totales: {{ resultados.num_muestras }}</li>
+        <li>Media de valoración (>= 5): {{ resultados.media_valoracion }}</li>
+        <li>Desviación estándar de valoración (>= 5): {{ resultados.desviacion_valoracion }}</li>
+        <li>Media de incidentes por cliente: {{ resultados.media_incidentes_cliente }}</li>
+        <li>Desviación estándar de incidentes por cliente: {{ resultados.desviacion_incidentes_cliente }}</li>
+        <li>Media de horas totales por incidente: {{ resultados.media_horas_incidente }}</li>
+        <li>Desviación estándar de horas totales por incidente: {{ resultados.desviacion_horas_incidente }}</li>
+        <li>Valor mínimo de horas realizadas por empleados: {{ resultados.min_horas_empleados }}</li>
+        <li>Valor máximo de horas realizadas por empleados: {{ resultados.max_horas_empleados }}</li>
+        <li>Valor mínimo de tiempo entre apertura y cierre de incidente: {{ resultados.min_tiempo_incidente }} días</li>
+        <li>Valor máximo de tiempo entre apertura y cierre de incidente: {{ resultados.max_tiempo_incidente }} días</li>
+        <li>Valor mínimo de incidentes atendidos por empleado: {{ resultados.min_incidentes_empleado }}</li>
+        <li>Valor máximo de incidentes atendidos por empleado: {{ resultados.max_incidentes_empleado }}</li>
+    </ul>
+</body>
+</html>

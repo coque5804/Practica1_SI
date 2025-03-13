@@ -1,107 +1,70 @@
+from flask import Flask, render_template, request
 import sqlite3
 import pandas as pd
-import json
 
-# Leer datos del archivo JSON
-with open('datos.json', 'r') as file:
-    datos = json.load(file)
+app = Flask(__name__)
 
-print(datos)
-print(datos["tickets_emitidos"])
+def obtener_datos():
+    # Conectar a la base de datos SQLite
+    con = sqlite3.connect('datos.db')
 
-# Conectar a la base de datos SQLite
-con = sqlite3.connect('datos.db')
-cur = con.cursor()
+    # Realizar consultas y almacenar resultados en DataFrames
+    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
+    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
 
-# Crear tablas en la base de datos
-cur.execute('''
-CREATE TABLE IF NOT EXISTS Incidentes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cliente TEXT,
-    fecha_apertura TEXT,
-    fecha_cierre TEXT,
-    es_mantenimiento BOOLEAN,
-    satisfaccion_cliente INTEGER,
-    tipo_incidencia INTEGER
-)
-''')
+    # Calcular valores necesarios
+    num_muestras = len(df_incidentes)
+    media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
+    desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
 
-cur.execute('''
-CREATE TABLE IF NOT EXISTS Contactos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    incidente_id INTEGER,
-    id_emp TEXT,
-    fecha TEXT,
-    tiempo REAL,
-    FOREIGN KEY (incidente_id) REFERENCES Incidentes (id)
-)
-''')
-con.commit()
+    media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
+    desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
 
-# Insertar datos en las tablas
-for ticket in datos["tickets_emitidos"]:
-    cur.execute('''
-    INSERT INTO Incidentes (cliente, fecha_apertura, fecha_cierre, es_mantenimiento, satisfaccion_cliente, tipo_incidencia)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (ticket['cliente'], ticket['fecha_apertura'], ticket['fecha_cierre'], ticket['es_mantenimiento'],
-          ticket['satisfaccion_cliente'], ticket['tipo_incidencia']))
+    media_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().mean()
+    desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().std()
 
-    incidente_id = cur.lastrowid
+    min_horas_empleados = df_contactos['tiempo'].min()
+    max_horas_empleados = df_contactos['tiempo'].max()
 
-    for contacto in ticket['contactos_con_empleados']:
-        cur.execute('''
-        INSERT INTO Contactos (incidente_id, id_emp, fecha, tiempo)
-        VALUES (?, ?, ?, ?)
-        ''', (incidente_id, contacto['id_emp'], contacto['fecha'], contacto['tiempo']))
-    con.commit()
+    # Convertir fechas a formato datetime
+    df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
+    df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
 
-# Realizar consultas y almacenar resultados en DataFrames
-df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
-df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
+    tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
 
-# Calcular valores necesarios
-num_muestras = len(df_incidentes)
-media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
-desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
+    # Verificar si hay datos antes de calcular min y max
+    min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
+    max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
 
-media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
-desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
+    min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
+    max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
 
-media_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().mean()
-desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().std()
+    # Cerrar conexión
+    con.close()
 
-min_horas_empleados = df_contactos['tiempo'].min()
-max_horas_empleados = df_contactos['tiempo'].max()
+    # Resultados
+    resultados = {
+        "num_muestras": num_muestras,
+        "media_valoracion": media_valoracion,
+        "desviacion_valoracion": desviacion_valoracion,
+        "media_incidentes_cliente": media_incidentes_cliente,
+        "desviacion_incidentes_cliente": desviacion_incidentes_cliente,
+        "media_horas_incidente": media_horas_incidente,
+        "desviacion_horas_incidente": desviacion_horas_incidente,
+        "min_horas_empleados": min_horas_empleados,
+        "max_horas_empleados": max_horas_empleados,
+        "min_tiempo_incidente": min_tiempo_incidente,
+        "max_tiempo_incidente": max_tiempo_incidente,
+        "min_incidentes_empleado": min_incidentes_empleado,
+        "max_incidentes_empleado": max_incidentes_empleado
+    }
 
-# Convertir fechas a formato datetime
-df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
-df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
+    return resultados
 
-tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
+@app.route('/')
+def index():
+    resultados = obtener_datos()
+    return render_template('index.html', resultados=resultados)
 
-# Verificar si hay datos antes de calcular min y max
-min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
-max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
-
-
-min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
-max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
-
-
-# Cerrar conexión
-con.close()
-
-# Resultados
-print(f"Número de muestras totales: {num_muestras}")
-print(f"Media de valoración (>= 5): {media_valoracion}")
-print(f"Desviación estándar de valoración (>= 5): {desviacion_valoracion}")
-print(f"Media de incidentes por cliente: {media_incidentes_cliente}")
-print(f"Desviación estándar de incidentes por cliente: {desviacion_incidentes_cliente}")
-print(f"Media de horas totales por incidente: {media_horas_incidente}")
-print(f"Desviación estándar de horas totales por incidente: {desviacion_horas_incidente}")
-print(f"Valor mínimo de horas realizadas por empleados: {min_horas_empleados}")
-print(f"Valor máximo de horas realizadas por empleados: {max_horas_empleados}")
-print(f"Valor mínimo de tiempo entre apertura y cierre de incidente: {min_tiempo_incidente} días")
-print(f"Valor máximo de tiempo entre apertura y cierre de incidente: {max_tiempo_incidente} días")
-print(f"Valor mínimo de incidentes atendidos por empleado: {min_incidentes_empleado}")
-print(f"Valor máximo de incidentes atendidos por empleado: {max_incidentes_empleado}")
+if __name__ == '__main__':
+    app.run(debug=True)
