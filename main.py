@@ -79,4 +79,12 @@ df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], er
 
 tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
 
+# Verificar si hay datos antes de calcular min y max
+min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
+max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
+
+
+min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
+max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
+
 
