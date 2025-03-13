@@ -38,4 +38,69 @@ CREATE TABLE IF NOT EXISTS Contactos (
 ''')
 con.commit()
 
-#dd
+# Insertar datos en las tablas
+for ticket in datos["tickets_emitidos"]:
+    cur.execute('''
+    INSERT INTO Incidentes (cliente, fecha_apertura, fecha_cierre, es_mantenimiento, satisfaccion_cliente, tipo_incidencia)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (ticket['cliente'], ticket['fecha_apertura'], ticket['fecha_cierre'], ticket['es_mantenimiento'],
+          ticket['satisfaccion_cliente'], ticket['tipo_incidencia']))
+
+    incidente_id = cur.lastrowid
+
+    for contacto in ticket['contactos_con_empleados']:
+        cur.execute('''
+        INSERT INTO Contactos (incidente_id, id_emp, fecha, tiempo)
+        VALUES (?, ?, ?, ?)
+        ''', (incidente_id, contacto['id_emp'], contacto['fecha'], contacto['tiempo']))
+    con.commit()
+
+# Realizar consultas y almacenar resultados en DataFrames
+df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
+df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
+
+# Calcular valores necesarios
+num_muestras = len(df_incidentes)
+media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
+desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
+
+media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
+desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
+
+media_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().mean()
+desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().std()
+
+min_horas_empleados = df_contactos['tiempo'].min()
+max_horas_empleados = df_contactos['tiempo'].max()
+
+# Convertir fechas a formato datetime
+df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
+df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
+
+tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
+
+# Verificar si hay datos antes de calcular min y max
+min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
+max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
+
+
+min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
+max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
+
+# Cerrar conexión
+con.close()
+
+# Resultados
+print(f"Número de muestras totales: {num_muestras}")
+print(f"Media de valoración (>= 5): {media_valoracion}")
+print(f"Desviación estándar de valoración (>= 5): {desviacion_valoracion}")
+print(f"Media de incidentes por cliente: {media_incidentes_cliente}")
+print(f"Desviación estándar de incidentes por cliente: {desviacion_incidentes_cliente}")
+print(f"Media de horas totales por incidente: {media_horas_incidente}")
+print(f"Desviación estándar de horas totales por incidente: {desviacion_horas_incidente}")
+print(f"Valor mínimo de horas realizadas por empleados: {min_horas_empleados}")
+print(f"Valor máximo de horas realizadas por empleados: {max_horas_empleados}")
+print(f"Valor mínimo de tiempo entre apertura y cierre de incidente: {min_tiempo_incidente} días")
+print(f"Valor máximo de tiempo entre apertura y cierre de incidente: {max_tiempo_incidente} días")
+print(f"Valor mínimo de incidentes atendidos por empleado: {min_incidentes_empleado}")
+print(f"Valor máximo de incidentes atendidos por empleado: {max_incidentes_empleado}")
