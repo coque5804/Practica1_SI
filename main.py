@@ -88,3 +88,20 @@ min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
 max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
 
 
+# Cerrar conexión
+con.close()
+
+# Resultados
+print(f"Número de muestras totales: {num_muestras}")
+print(f"Media de valoración (>= 5): {media_valoracion}")
+print(f"Desviación estándar de valoración (>= 5): {desviacion_valoracion}")
+print(f"Media de incidentes por cliente: {media_incidentes_cliente}")
+print(f"Desviación estándar de incidentes por cliente: {desviacion_incidentes_cliente}")
+print(f"Media de horas totales por incidente: {media_horas_incidente}")
+print(f"Desviación estándar de horas totales por incidente: {desviacion_horas_incidente}")
+print(f"Valor mínimo de horas realizadas por empleados: {min_horas_empleados}")
+print(f"Valor máximo de horas realizadas por empleados: {max_horas_empleados}")
+print(f"Valor mínimo de tiempo entre apertura y cierre de incidente: {min_tiempo_incidente} días")
+print(f"Valor máximo de tiempo entre apertura y cierre de incidente: {max_tiempo_incidente} días")
+print(f"Valor mínimo de incidentes atendidos por empleado: {min_incidentes_empleado}")
+print(f"Valor máximo de incidentes atendidos por empleado: {max_incidentes_empleado}")
