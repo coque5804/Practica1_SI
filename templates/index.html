@@ -23,5 +23,15 @@
         <li>Valor mínimo de incidentes atendidos por empleado: {{ resultados.min_incidentes_empleado }}</li>
         <li>Valor máximo de incidentes atendidos por empleado: {{ resultados.max_incidentes_empleado }}</li>
     </ul>
+    <h2>Resultados de Fraude</h2>
+    <ul>
+        <li>Número de incidentes de fraude: {{ resultados_fraude.num_incidentes_fraude }}</li>
+        <li>Número de actuaciones realizadas por los empleados en casos de fraude: {{ resultados_fraude.num_actuaciones_fraude }}</li>
+        <li>Mediana de satisfacción en casos de fraude: {{ resultados_fraude.mediana_fraude }}</li>
+        <li>Media de satisfacción en casos de fraude: {{ resultados_fraude.media_fraude }}</li>
+        <li>Varianza de satisfacción en casos de fraude: {{ resultados_fraude.varianza_fraude }}</li>
+        <li>Valor máximo de satisfacción en casos de fraude: {{ resultados_fraude.max_fraude }}</li>
+        <li>Valor mínimo de satisfacción en casos de fraude: {{ resultados_fraude.min_fraude }}</li>
+    </ul>
 </body>
 </html>

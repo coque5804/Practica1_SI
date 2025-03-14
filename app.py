@@ -17,8 +17,8 @@ def obtener_datos():
     media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
     desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
 
-    media_incidentes_cliente = df_incidentes.groupby('cliente').size().mean()
-    desviacion_incidentes_cliente = df_incidentes.groupby('cliente').size().std()
+    media_incidentes_cliente = (df_incidentes.groupby('cliente').size().mean())
+    desviacion_incidentes_cliente = (df_incidentes.groupby('cliente').size().std())
 
     media_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().mean()
     desviacion_horas_incidente = df_contactos.groupby('incidente_id')['tiempo'].sum().std()
@@ -36,21 +36,13 @@ def obtener_datos():
     min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
     max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
 
-    min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
-    max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
-
-    #EJERCICIO 3
-
-    # Agrupaciones
-    agrupado_por_empleado = df_contactos.groupby('id_emp')
-    agrupado_por_cliente = df_incidentes.groupby('cliente')
-    agrupado_por_tipo_incidente = df_incidentes.groupby('tipo_incidencia')
-    agrupado_por_dia_semana = df_incidentes.groupby(df_incidentes['fecha_apertura'].dt.day_name())
+    min_incidentes_empleado = (df_contactos.groupby('id_emp').size().min())
+    max_incidentes_empleado = (df_contactos.groupby('id_emp').size().max())
 
     # Cálculos específicos para la variable "Fraude"
-    fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 1]  # Asumiendo que 1 representa "Fraude"
+    fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 5]  # Asumiendo que 5 representa "Fraude"
     num_incidentes_fraude = len(fraude_incidentes)
-    num_actuaciones_fraude = df_contactos[df_contactos['incidente_id'].isin(fraude_incidentes['id'])].shape[0]
+    num_actuaciones_fraude = (df_contactos[df_contactos['incidente_id'].isin(fraude_incidentes['id'])].shape[0])/2
 
     # Análisis estadístico básico
     mediana_fraude = fraude_incidentes['satisfaccion_cliente'].median()
@@ -62,7 +54,7 @@ def obtener_datos():
     # Cerrar conexión
     con.close()
 
-    # Resultados
+    # Resultados generales
     resultados = {
         "num_muestras": num_muestras,
         "media_valoracion": media_valoracion,
@@ -79,12 +71,23 @@ def obtener_datos():
         "max_incidentes_empleado": max_incidentes_empleado
     }
 
-    return resultados
+    # Resultados específicos para la variable "Fraude"
+    resultados_fraude = {
+        "num_incidentes_fraude": num_incidentes_fraude,
+        "num_actuaciones_fraude": num_actuaciones_fraude,
+        "mediana_fraude": mediana_fraude,
+        "media_fraude": media_fraude,
+        "varianza_fraude": varianza_fraude,
+        "max_fraude": max_fraude,
+        "min_fraude": min_fraude
+    }
+
+    return resultados, resultados_fraude
 
 @app.route('/')
 def index():
-    resultados = obtener_datos()
-    return render_template('index.html', resultados=resultados)
+    resultados, resultados_fraude = obtener_datos()
+    return render_template('index.html', resultados=resultados, resultados_fraude=resultados_fraude)
 
 if __name__ == '__main__':
     app.run(debug=True)

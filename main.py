@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS Contactos (
     FOREIGN KEY (incidente_id) REFERENCES Incidentes (id)
 )
 ''')
+
+# Limpiar las tablas antes de insertar nuevos datos
+cur.execute('DELETE FROM Incidentes')
+cur.execute('DELETE FROM Contactos')
 con.commit()
 
 # Insertar datos en las tablas
