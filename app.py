@@ -84,10 +84,52 @@ def obtener_datos():
 
     return resultados, resultados_fraude
 
+def generar_graficos():
+    con = sqlite3.connect('datos.db')
+
+    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
+
+    # Convertir fechas a formato datetime
+    df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
+    df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
+
+    # Calcular tiempo de resolución
+    df_incidentes['tiempo_resolucion'] = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dt.days
+
+    # Mostrar la media de tiempo (apertura-cierre) de los incidentes agrupando entre los que son de mantenimiento y los que no.
+    media_tiempo_mantenimiento = df_incidentes[df_incidentes['es_mantenimiento'] == True]['tiempo_resolucion'].mean()
+    media_tiempo_no_mantenimiento = df_incidentes[df_incidentes['es_mantenimiento'] == False]['tiempo_resolucion'].mean()
+
+    plt.figure(figsize=(10, 5))
+    plt.bar(['Mantenimiento', 'No Mantenimiento'], [media_tiempo_mantenimiento, media_tiempo_no_mantenimiento])
+    plt.xlabel('Tipo de Incidencia')
+    plt.ylabel('Media de Tiempo (días)')
+    plt.title('Media de Tiempo de Resolución por Tipo de Incidencia')
+    plt.savefig('static/media_tiempo_resolucion.png')
+
+    # Mostrar por tipo de incidente una gráfica de “bigotes” (boxplot) con los tiempos de resolución representando los percentiles 5% y 90%.
+    plt.figure(figsize=(10, 5))
+    df_boxplot_data = df_incidentes[['tipo_incidencia', 'tiempo_resolucion']].copy()
+
+    # Ordenar los tipos de incidencia
+    df_boxplot_data['tipo_incidencia'] = df_boxplot_data['tipo_incidencia'].astype(int)
+    df_boxplot_data = df_boxplot_data.sort_values('tipo_incidencia')
+
+    boxplot_data_grouped_by_tipo_incidencia = [df_boxplot_data[df_boxplot_data['tipo_incidencia'] == tipo]['tiempo_resolucion'] for tipo in sorted(df_boxplot_data['tipo_incidencia'].unique())]
+
+    plt.boxplot(boxplot_data_grouped_by_tipo_incidencia, labels=sorted(df_boxplot_data['tipo_incidencia'].unique()), showfliers=False)
+    plt.xlabel('Tipo de Incidencia')
+    plt.ylabel('Tiempo de Resolución (días)')
+    plt.title('Boxplot de Tiempos de Resolución por Tipo de Incidencia')
+    plt.savefig('static/boxplot_tiempos_resolucion.png')
+
+    con.close()
+
+
 @app.route('/')
 def index():
     resultados, resultados_fraude = obtener_datos()
+    generar_graficos()
     return render_template('index.html', resultados=resultados, resultados_fraude=resultados_fraude)
-
 if __name__ == '__main__':
     app.run(debug=True)

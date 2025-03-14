@@ -33,5 +33,12 @@
         <li>Valor máximo de satisfacción en casos de fraude: {{ resultados_fraude.max_fraude }}</li>
         <li>Valor mínimo de satisfacción en casos de fraude: {{ resultados_fraude.min_fraude }}</li>
     </ul>
+    <h3>Gráficos</h3>
+    <div>
+        <h4>Media de Tiempo de Resolución por Tipo de Incidencia</h4>
+        <img src="{{ url_for('static', filename='media_tiempo_resolucion.png') }}" alt="Media de Tiempo de Resolución por Tipo de Incidencia">
+        <h4>Boxplot de Tiempos de Resolución por Tipo de Incidencia</h4>
+        <img src="{{ url_for('static', filename='boxplot_tiempos_resolucion.png') }}" alt="Boxplot de Tiempos de Resolución por Tipo de Incidencia">
+    </div>
 </body>
 </html>
