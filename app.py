@@ -39,6 +39,26 @@ def obtener_datos():
     min_incidentes_empleado = df_contactos.groupby('id_emp').size().min()
     max_incidentes_empleado = df_contactos.groupby('id_emp').size().max()
 
+    #EJERCICIO 3
+
+    # Agrupaciones
+    agrupado_por_empleado = df_contactos.groupby('id_emp')
+    agrupado_por_cliente = df_incidentes.groupby('cliente')
+    agrupado_por_tipo_incidente = df_incidentes.groupby('tipo_incidencia')
+    agrupado_por_dia_semana = df_incidentes.groupby(df_incidentes['fecha_apertura'].dt.day_name())
+
+    # Cálculos específicos para la variable "Fraude"
+    fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 1]  # Asumiendo que 1 representa "Fraude"
+    num_incidentes_fraude = len(fraude_incidentes)
+    num_actuaciones_fraude = df_contactos[df_contactos['incidente_id'].isin(fraude_incidentes['id'])].shape[0]
+
+    # Análisis estadístico básico
+    mediana_fraude = fraude_incidentes['satisfaccion_cliente'].median()
+    media_fraude = fraude_incidentes['satisfaccion_cliente'].mean()
+    varianza_fraude = fraude_incidentes['satisfaccion_cliente'].var()
+    max_fraude = fraude_incidentes['satisfaccion_cliente'].max()
+    min_fraude = fraude_incidentes['satisfaccion_cliente'].min()
+
     # Cerrar conexión
     con.close()
 
