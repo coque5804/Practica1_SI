@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request
 import sqlite3
 import pandas as pd
+import matplotlib.pyplot as plt
+
 
 app = Flask(__name__)
 
@@ -88,6 +90,7 @@ def generar_graficos():
     con = sqlite3.connect('datos.db')
 
     df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
+    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
 
     # Convertir fechas a formato datetime
     df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
@@ -122,6 +125,44 @@ def generar_graficos():
     plt.ylabel('Tiempo de Resolución (días)')
     plt.title('Boxplot de Tiempos de Resolución por Tipo de Incidencia')
     plt.savefig('static/boxplot_tiempos_resolucion.png')
+
+    # Mostrar los 5 clientes más críticos
+    df_criticos = df_incidentes[
+        (df_incidentes['es_mantenimiento'] == True) &
+        (df_incidentes['tipo_incidencia'] != 1)
+    ]
+    top_5_clientes = df_criticos['cliente'].value_counts().head(5)
+
+    plt.figure(figsize=(10, 5))
+    top_5_clientes.plot(kind='bar', color='skyblue')
+    plt.xlabel('Cliente')
+    plt.ylabel('Número de Incidentes')
+    plt.title('Top 5 Clientes Más Críticos')
+    plt.savefig('static/top_5_clientes_criticos.png')
+
+    # Mostrar número total de actuaciones por empleados
+    actuaciones_por_empleado = df_contactos.groupby('id_emp').size()
+
+    plt.figure(figsize=(10, 5))
+    actuaciones_por_empleado.plot(kind='bar', color='orange')
+    plt.xlabel('Empleado')
+    plt.ylabel('Número de Actuaciones')
+    plt.title('Total de Actuaciones por Empleados')
+    plt.savefig('static/actuaciones_por_empleados.png')
+
+    # Mostrar actuaciones totales según el día de la semana
+    df_incidentes['dia_semana'] = df_incidentes['fecha_apertura'].dt.day_name()
+    actuaciones_por_dia = df_contactos.merge(
+        df_incidentes[['id', 'dia_semana']], left_on='incidente_id', right_on='id'
+    )['dia_semana'].value_counts()
+
+    plt.figure(figsize=(10, 8))
+    actuaciones_por_dia.plot(kind='bar', color='green')
+    plt.xlabel('Día de la Semana')
+    plt.ylabel('Total de Actuaciones')
+    plt.title('Actuaciones por Día de la Semana')
+    plt.savefig('static/actuaciones_por_dia.png')
+
 
     con.close()
 
