@@ -1,17 +1,14 @@
 import sqlite3
 import json
 
-# Leer datos del archivo JSON
-with open('datos.json', 'r') as file:
-    datos = json.load(file)
+file = open('datos.json', 'r')
+datos = json.load(file)
+file.close()
 
-# Conectar a la base de datos SQLite
-con = sqlite3.connect('datos.db')
-cur = con.cursor()
+conexion = sqlite3.connect('datos.db')
+cursor = conexion.cursor()
 
-# Crear tablas en la base de datos
-cur.execute('''
-CREATE TABLE IF NOT EXISTS Incidentes (
+cursor.execute('''CREATE TABLE IF NOT EXISTS Incidentes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente TEXT,
     fecha_apertura TEXT,
@@ -19,41 +16,32 @@ CREATE TABLE IF NOT EXISTS Incidentes (
     es_mantenimiento BOOLEAN,
     satisfaccion_cliente INTEGER,
     tipo_incidencia INTEGER
-)
-''')
+)''')
 
-cur.execute('''
-CREATE TABLE IF NOT EXISTS Contactos (
+cursor.execute('''CREATE TABLE IF NOT EXISTS Contactos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     incidente_id INTEGER,
     id_emp TEXT,
     fecha TEXT,
     tiempo REAL,
     FOREIGN KEY (incidente_id) REFERENCES Incidentes (id)
-)
-''')
+)''')
 
-# Limpiar las tablas antes de insertar nuevos datos
-cur.execute('DELETE FROM Incidentes')
-cur.execute('DELETE FROM Contactos')
-con.commit()
+cursor.execute('DELETE FROM Incidentes')
+cursor.execute('DELETE FROM Contactos')
+conexion.commit()
 
-# Insertar datos en las tablas
 for ticket in datos["tickets_emitidos"]:
-    cur.execute('''
-    INSERT INTO Incidentes (cliente, fecha_apertura, fecha_cierre, es_mantenimiento, satisfaccion_cliente, tipo_incidencia)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (ticket['cliente'], ticket['fecha_apertura'], ticket['fecha_cierre'], ticket['es_mantenimiento'],
-          ticket['satisfaccion_cliente'], ticket['tipo_incidencia']))
+    cursor.execute('''
+    INSERT INTO Incidentes (cliente, fecha_apertura, fecha_cierre, es_mantenimiento, satisfaccion_cliente, tipo_incidencia) VALUES (?, ?, ?, ?, ?, ?)
+    ''', (ticket['cliente'], ticket['fecha_apertura'], ticket['fecha_cierre'], ticket['es_mantenimiento'], ticket['satisfaccion_cliente'], ticket['tipo_incidencia']))
 
-    incidente_id = cur.lastrowid
+    incidente_id = cursor.lastrowid
 
     for contacto in ticket['contactos_con_empleados']:
-        cur.execute('''
-        INSERT INTO Contactos (incidente_id, id_emp, fecha, tiempo)
-        VALUES (?, ?, ?, ?)
+        cursor.execute('''
+        INSERT INTO Contactos (incidente_id, id_emp, fecha, tiempo) VALUES (?, ?, ?, ?)
         ''', (incidente_id, contacto['id_emp'], contacto['fecha'], contacto['tiempo']))
-    con.commit()
+    conexion.commit()
 
-# Cerrar conexión
-con.close()
+conexion.close()
