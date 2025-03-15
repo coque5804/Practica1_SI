@@ -3,18 +3,14 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 app = Flask(__name__)
 
-def obtener_datos():
-    # Conectar a la base de datos SQLite
-    con = sqlite3.connect('datos.db')
+def datos():
+    conexion = sqlite3.connect('datos.db')
 
-    # Realizar consultas y almacenar resultados en DataFrames
-    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
-    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
+    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', conexion)
+    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', conexion)
 
-    # Calcular valores necesarios
     num_muestras = len(df_incidentes)
     media_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].mean()
     desviacion_valoracion = df_incidentes[df_incidentes['satisfaccion_cliente'] >= 5]['satisfaccion_cliente'].std()
@@ -28,35 +24,33 @@ def obtener_datos():
     min_horas_empleados = df_contactos['tiempo'].min()
     max_horas_empleados = df_contactos['tiempo'].max()
 
-    # Convertir fechas a formato datetime
     df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
     df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
 
     tiempo_resolucion = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dropna()
-
-    # Verificar si hay datos antes de calcular min y max
-    min_tiempo_incidente = tiempo_resolucion.min().days if not tiempo_resolucion.empty else None
-    max_tiempo_incidente = tiempo_resolucion.max().days if not tiempo_resolucion.empty else None
+    if not tiempo_resolucion.empty:
+        min_tiempo_incidente = tiempo_resolucion.min().days
+        max_tiempo_incidente = tiempo_resolucion.max().days
+    else:
+        min_tiempo_incidente = None
+        max_tiempo_incidente = None
 
     min_incidentes_empleado = (df_contactos.groupby('id_emp').size().min())
     max_incidentes_empleado = (df_contactos.groupby('id_emp').size().max())
 
-    # Cálculos específicos para la variable "Fraude"
+
     fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 5]  # Asumiendo que 5 representa "Fraude"
     num_incidentes_fraude = len(fraude_incidentes)
     num_actuaciones_fraude = (df_contactos[df_contactos['incidente_id'].isin(fraude_incidentes['id'])].shape[0])/2
 
-    # Análisis estadístico básico
     mediana_fraude = fraude_incidentes['satisfaccion_cliente'].median()
     media_fraude = fraude_incidentes['satisfaccion_cliente'].mean()
     varianza_fraude = fraude_incidentes['satisfaccion_cliente'].var()
     max_fraude = fraude_incidentes['satisfaccion_cliente'].max()
     min_fraude = fraude_incidentes['satisfaccion_cliente'].min()
 
-    # Cerrar conexión
-    con.close()
+    conexion.close()
 
-    # Resultados generales
     resultados = {
         "num_muestras": num_muestras,
         "media_valoracion": media_valoracion,
@@ -73,7 +67,6 @@ def obtener_datos():
         "max_incidentes_empleado": max_incidentes_empleado
     }
 
-    # Resultados específicos para la variable "Fraude"
     resultados_fraude = {
         "num_incidentes_fraude": num_incidentes_fraude,
         "num_actuaciones_fraude": num_actuaciones_fraude,
@@ -86,20 +79,17 @@ def obtener_datos():
 
     return resultados, resultados_fraude
 
-def generar_graficos():
-    con = sqlite3.connect('datos.db')
+def graficos():
+    conexion = sqlite3.connect('datos.db')
 
-    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', con)
-    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', con)
+    df_incidentes = pd.read_sql_query('SELECT * FROM Incidentes', conexion)
+    df_contactos = pd.read_sql_query('SELECT * FROM Contactos', conexion)
 
-    # Convertir fechas a formato datetime
     df_incidentes['fecha_apertura'] = pd.to_datetime(df_incidentes['fecha_apertura'], errors='coerce')
     df_incidentes['fecha_cierre'] = pd.to_datetime(df_incidentes['fecha_cierre'], errors='coerce')
 
-    # Calcular tiempo de resolución
     df_incidentes['tiempo_resolucion'] = (df_incidentes['fecha_cierre'] - df_incidentes['fecha_apertura']).dt.days
 
-    # Mostrar la media de tiempo (apertura-cierre) de los incidentes agrupando entre los que son de mantenimiento y los que no.
     media_tiempo_mantenimiento = df_incidentes[df_incidentes['es_mantenimiento'] == True]['tiempo_resolucion'].mean()
     media_tiempo_no_mantenimiento = df_incidentes[df_incidentes['es_mantenimiento'] == False]['tiempo_resolucion'].mean()
 
@@ -110,27 +100,23 @@ def generar_graficos():
     plt.title('Media de Tiempo de Resolución por Tipo de Incidencia')
     plt.savefig('static/media_tiempo_resolucion.png')
 
-    # Mostrar por tipo de incidente una gráfica de “bigotes” (boxplot) con los tiempos de resolución representando los percentiles 5% y 90%.
     plt.figure(figsize=(10, 5))
-    df_boxplot_data = df_incidentes[['tipo_incidencia', 'tiempo_resolucion']].copy()
+    df_boxplot = df_incidentes[['tipo_incidencia', 'tiempo_resolucion']].copy()
 
-    # Ordenar los tipos de incidencia
-    df_boxplot_data['tipo_incidencia'] = df_boxplot_data['tipo_incidencia'].astype(int)
-    df_boxplot_data = df_boxplot_data.sort_values('tipo_incidencia')
+    df_boxplot['tipo_incidencia'] = df_boxplot['tipo_incidencia'].astype(int)
+    df_boxplot = df_boxplot.sort_values('tipo_incidencia')
 
-    boxplot_data_grouped_by_tipo_incidencia = [df_boxplot_data[df_boxplot_data['tipo_incidencia'] == tipo]['tiempo_resolucion'] for tipo in sorted(df_boxplot_data['tipo_incidencia'].unique())]
+    df_boxplot_incidencia = []
+    for tipo in sorted(df_boxplot['tipo_incidencia'].unique()):
+        df_boxplot_incidencia.append(df_boxplot[df_boxplot['tipo_incidencia'] == tipo]['tiempo_resolucion'])
 
-    plt.boxplot(boxplot_data_grouped_by_tipo_incidencia, labels=sorted(df_boxplot_data['tipo_incidencia'].unique()), showfliers=False)
+    plt.boxplot(df_boxplot_incidencia, labels=sorted(df_boxplot['tipo_incidencia'].unique()), showfliers=False)
     plt.xlabel('Tipo de Incidencia')
     plt.ylabel('Tiempo de Resolución (días)')
     plt.title('Boxplot de Tiempos de Resolución por Tipo de Incidencia')
     plt.savefig('static/boxplot_tiempos_resolucion.png')
 
-    # Mostrar los 5 clientes más críticos
-    df_criticos = df_incidentes[
-        (df_incidentes['es_mantenimiento'] == True) &
-        (df_incidentes['tipo_incidencia'] != 1)
-    ]
+    df_criticos = df_incidentes[(df_incidentes['es_mantenimiento'] == True) & (df_incidentes['tipo_incidencia'] != 1)]
     top_5_clientes = df_criticos['cliente'].value_counts().head(5)
 
     plt.figure(figsize=(10, 5))
@@ -140,21 +126,17 @@ def generar_graficos():
     plt.title('Top 5 Clientes Más Críticos')
     plt.savefig('static/top_5_clientes_criticos.png')
 
-    # Mostrar número total de actuaciones por empleados
-    actuaciones_por_empleado = df_contactos.groupby('id_emp').size()
+    actuaciones_empleado = df_contactos.groupby('id_emp').size()
 
     plt.figure(figsize=(10, 5))
-    actuaciones_por_empleado.plot(kind='bar', color='orange')
+    actuaciones_empleado.plot(kind='bar', color='orange')
     plt.xlabel('Empleado')
     plt.ylabel('Número de Actuaciones')
     plt.title('Total de Actuaciones por Empleados')
     plt.savefig('static/actuaciones_por_empleados.png')
 
-    # Mostrar actuaciones totales según el día de la semana
     df_incidentes['dia_semana'] = df_incidentes['fecha_apertura'].dt.day_name()
-    actuaciones_por_dia = df_contactos.merge(
-        df_incidentes[['id', 'dia_semana']], left_on='incidente_id', right_on='id'
-    )['dia_semana'].value_counts()
+    actuaciones_por_dia = df_contactos.merge(df_incidentes[['id', 'dia_semana']], left_on='incidente_id', right_on='id')['dia_semana'].value_counts()
 
     plt.figure(figsize=(10, 8))
     actuaciones_por_dia.plot(kind='bar', color='green')
@@ -162,15 +144,13 @@ def generar_graficos():
     plt.ylabel('Total de Actuaciones')
     plt.title('Actuaciones por Día de la Semana')
     plt.savefig('static/actuaciones_por_dia.png')
-
-
-    con.close()
-
+    
+    conexion.close()
 
 @app.route('/')
 def index():
-    resultados, resultados_fraude = obtener_datos()
-    generar_graficos()
+    resultados, resultados_fraude = datos()
+    graficos()
     return render_template('index.html', resultados=resultados, resultados_fraude=resultados_fraude)
 if __name__ == '__main__':
     app.run(debug=True)
