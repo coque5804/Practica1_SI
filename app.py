@@ -39,7 +39,7 @@ def datos():
     max_incidentes_empleado = (df_contactos.groupby('id_emp').size().max())
 
 
-    fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 5]  # Asumiendo que 5 representa "Fraude"
+    fraude_incidentes = df_incidentes[df_incidentes['tipo_incidencia'] == 5]
     num_incidentes_fraude = len(fraude_incidentes)
     num_actuaciones_fraude = (df_contactos[df_contactos['incidente_id'].isin(fraude_incidentes['id'])].shape[0])/2
 
